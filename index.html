@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>도덕 RPG: 세상을 구하는 용사들</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- 폰트: 고딕(UI), 픽셀(게임), 제목(타이틀) -->
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+KR:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+/* --- 1. CORE ENGINE & LAYOUT --- */
+* { box-sizing: border-box; }
+
+body {
+    background-color: #202028;
+    display: flex;
+    flex-direction: column;
+    align-items: center; 
+    margin: 0;
+    min-height: 100vh;
+    padding: 40px 20px;
+    font-family: 'DotGothic16', sans-serif;
+    color: #fff;
+}
+
+/* Slide Container (Game Screen) */
+.slide-container {
+    background-color: #2d2d3a;
+    border: 4px solid #fff;
+    border-radius: 8px;
+    box-shadow: 
+        0 0 0 4px #2d2d3a,
+        0 0 0 8px #fff,
+        0 20px 50px rgba(0,0,0,0.5);
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    height: 720px;
+    width: 1280px;
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+    image-rendering: pixelated;
+    margin-bottom: 40px;
+    flex-shrink: 0; 
+}
+.slide-container.active { display: flex; }
+
+/* CRT Scanline Effect */
+.slide-container::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 10;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+}
+
+/* --- 2. TYPOGRAPHY --- */
+h1 { font-family: 'DotGothic16', sans-serif; font-size: 80px; color: #f1c40f; line-height: 1.2; text-shadow: 4px 4px 0 #000; margin: 0; }
+h2 { font-family: 'DotGothic16', sans-serif; font-size: 48px; color: #2ecc71; margin-bottom: 30px; border-bottom: 4px dashed #fff; padding-bottom: 15px; display: inline-block; text-shadow: 2px 2px 0 #000; }
+p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
+
+/* --- 3. LOGIN UI --- */
+#login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    z-index: 100;
+    background-color: #202028;
+}
+
+#login-screen {
+    background-color: #000;
+    border: 4px solid #f1c40f;
+    width: 600px;
+    padding: 40px;
+    text-align: center;
+    border-radius: 20px;
+    box-shadow: 0 0 50px rgba(241, 196, 15, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.login-title { font-size: 40px; color: #f1c40f; margin-bottom: 20px; }
+.login-input {
+    background-color: #222;
+    border: 2px solid #555;
+    color: #fff;
+    font-family: 'DotGothic16', sans-serif;
+    font-size: 24px;
+    padding: 15px;
+    text-align: center;
+    border-radius: 10px;
+}
+.login-input:focus { outline: none; border-color: #2ecc71; background-color: #333; }
+
+.login-btn {
+    background-color: #2ecc71;
+    color: #000;
+    font-size: 28px;
+    padding: 15px;
+    border: none;
+    font-family: 'DotGothic16', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #27ae60;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+.login-btn:active { transform: translateY(5px); box-shadow: none; }
+.login-btn:disabled { background-color: #555; color: #888; cursor: not-allowed; box-shadow: none; }
+
+/* --- 4. GAME UI COMPONENTS --- */
+.skill-tree { display: flex; justify-content: space-between; gap: 20px; height: 80%; align-items: center; }
+.skill-card {
+    background-color: #34495e; border: 4px solid #fff; box-shadow: 8px 8px 0 #000;
+    padding: 20px 15px; flex: 1; height: 450px;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    transition: transform 0.2s;
+}
+.skill-card:hover { transform: translateY(-10px); background-color: #2c3e50; }
+.skill-icon { width: 100px; height: 100px; background-color: #000; border: 4px solid #f1c40f; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; font-size: 40px; color: #f1c40f; }
+.skill-key { font-family: 'Press Start 2P', cursive; color: #e67e22; font-size: 40px; margin-bottom: 10px; }
+.skill-name { color: #2ecc71; font-size: 28px; margin-bottom: 10px; font-weight: bold; }
+.skill-desc { font-size: 18px; color: #bdc3c7; }
+
+.hud-layout { display: flex; gap: 40px; height: 100%; width: 100%; }
+.hud-stats { flex: 1; background-color: rgba(0,0,0,0.3); border: 4px solid #fff; padding: 30px; display: flex; flex-direction: column; justify-content: center; }
+.stat-row { margin-bottom: 25px; }
+.stat-label { color: #f1c40f; font-size: 20px; margin-bottom: 8px; display: block; }
+.stat-value { color: #fff; font-size: 24px; }
+.quest-box { background-color: #2c3e50; border: 2px solid #e74c3c; padding: 15px; margin-top: 20px; }
+.quest-title { color: #e74c3c; font-size: 18px; margin-bottom: 10px; text-transform: uppercase; border-bottom: 1px solid #e74c3c; padding-bottom: 5px; }
+
+.app-screen {
+    flex: 1.2; border: 4px solid #3498db; background-color: #1a1a1d;
+    position: relative; display: flex; flex-direction: column; padding: 20px; overflow: hidden;
+}
+.app-header { font-family: 'Press Start 2P'; font-size: 16px; color: #3498db; margin-bottom: 15px; display: flex; justify-content: space-between; }
+.player-info { font-size: 14px; color: #f1c40f; text-align: right; }
+
+.pixel-input {
+    background-color: #000; color: #fff; font-family: 'DotGothic16', sans-serif; font-size: 20px;
+    border: 2px solid #555; padding: 10px; width: 100%; height: 100px; resize: none; margin-bottom: 10px;
+}
+.pixel-input:focus { outline: none; border-color: #f1c40f; }
+
+.pixel-btn {
+    background-color: #3498db; color: #fff; font-family: 'Press Start 2P'; font-size: 14px;
+    border: 4px solid #fff; box-shadow: 4px 4px 0 #000; padding: 15px; cursor: pointer; width: 100%; margin-bottom: 15px; text-align: center;
+}
+.pixel-btn:hover { background-color: #2980b9; transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
+.pixel-btn:active { transform: translate(4px, 4px); box-shadow: none; }
+.pixel-btn.magic { background-color: #9b59b6; } 
+.pixel-btn.fire { background-color: #e74c3c; } 
+
+.result-box {
+    background-color: #000; border: 2px solid #2ecc71; color: #2ecc71; padding: 15px; flex-grow: 1;
+    font-family: 'DotGothic16', sans-serif; font-size: 20px; overflow-y: auto; white-space: pre-wrap;
+}
+
+.loading {
+    display: none; color: #f1c40f; text-align: center; margin: 10px 0;
+    font-family: 'Press Start 2P'; font-size: 12px; animation: blink 0.5s infinite;
+}
+
+/* Dashboard */
+.dashboard-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; height: 100%; overflow-y: auto; padding-right: 10px; }
+.student-card { background-color: #222; border: 2px solid #555; padding: 15px; border-radius: 8px; position: relative; margin-bottom: 10px; }
+.student-card.me { border-color: #f1c40f; background-color: #2c2c20; }
+.student-header { display: flex; justify-content: space-between; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px; font-size: 20px; color: #fff; }
+.student-result { font-size: 16px; color: #ccc; line-height: 1.4; max-height: 100px; overflow-y: hidden; text-overflow: ellipsis; white-space: pre-wrap; }
+
+/* Status Indicators */
+.status-msg { color: #777; font-size: 14px; margin-top: 10px; }
+.server-status {
+    position: fixed; bottom: 30px; left: 30px; z-index: 999;
+    font-family: 'Noto Sans KR', sans-serif; font-size: 14px; color: #2ecc71;
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(0,0,0,0.7); padding: 8px 12px; border-radius: 20px;
+}
+
+/* Home Button */
+.home-btn {
+    position: fixed; bottom: 30px; right: 30px; z-index: 999;
+    background-color: #e74c3c; color: #fff; border: 4px solid #fff; padding: 15px 20px;
+    font-family: 'Noto Sans KR', sans-serif; font-weight: 700; cursor: pointer; box-shadow: 4px 4px 0 #000;
+    display: none; font-size: 16px; align-items: center; gap: 10px; border-radius: 0;
+}
+.home-btn:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; background-color: #c0392b; }
+.home-btn:active { transform: translate(4px, 4px); box-shadow: none; }
+
+/* Special Modes */
+.boss-mode .app-screen { border-color: #e74c3c; }
+.boss-mode .app-header { color: #e74c3c; }
+.boss-mode .result-box { border-color: #e74c3c; color: #e74c3c; }
+.title-screen { text-align: center; }
+.title-screen .subtitle { font-size: 32px; color: #fff; margin-top: 20px; background-color: #e74c3c; padding: 10px 30px; border: 4px solid #fff; box-shadow: 8px 8px 0 #000; animation: blink 1.5s infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    </style>
+</head>
+<body>
+
+<!-- Server Status Indicator -->
+<div id="server-status" class="server-status">
+    <i class="fa-solid fa-circle-nodes"></i> 서버 연결 중...
+</div>
+
+<!-- 0. LOGIN SCREEN -->
+<div id="login-wrapper">
+    <div id="login-screen">
+        <div class="login-title"><i class="fa-solid fa-dungeon"></i> 캐릭터 생성</div>
+        <p style="font-size: 18px; color: #aaa; margin-bottom: 30px;">도덕 RPG 서버에 접속합니다.</p>
+        
+        <input type="text" id="student-id" class="login-input" placeholder="학번 (예: 10101)">
+        <input type="text" id="student-name" class="login-input" placeholder="이름 (예: 홍길동)">
+        
+        <button id="login-btn" class="login-btn" onclick="Frontend.startLogin()">접속하기 (CONNECT)</button>
+        <div id="login-status" class="status-msg"></div>
+    </div>
+</div>
+
+<!-- Home/Reset Button -->
+<button id="home-btn" class="home-btn" onclick="Frontend.goHome()">
+    <i class="fa-solid fa-rotate-left"></i> 처음으로
+</button>
+
+<!-- Slide 1: Title Screen -->
+<div class="slide-container title-screen" id="slide-title">
+    <p style="color: #f1c40f; font-family: 'Press Start 2P'; margin-bottom: 20px;">INSERT COIN</p>
+    <h1>도덕 RPG<br><span style="font-size: 50px; color: #fff;">세상을 구하는 용사들</span></h1>
+    <div class="subtitle">D-SEL 질문 기반 [D.I.T.T.O.] 어드벤처</div>
+    <div style="margin-top: 60px;">
+        <i class="fa-solid fa-gamepad" style="font-size: 60px; color: #fff; animation: blink 2s infinite;"></i>
+    </div>
+    <div style="margin-top: 30px; font-size: 20px; color: #2ecc71;">
+        Player: <span id="display-player-name">Unknown</span>
+    </div>
+</div>
+
+<!-- Slide 2: Skill Tree (DITTO) -->
+<div class="slide-container">
+    <h2><i class="fa-solid fa-book-skull"></i> 튜토리얼: 기본 스킬</h2>
+    <div class="skill-tree">
+        <div class="skill-card">
+            <div class="skill-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+            <div class="skill-key">D</div>
+            <div class="skill-name">데이터 스캔<br>(찾다)</div>
+            <div class="skill-desc">디지털 도구로<br>숨겨진 진실을<br>찾아낸다</div>
+        </div>
+        <div class="skill-card">
+            <div class="skill-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+            <div class="skill-key">I</div>
+            <div class="skill-name">마나 충전<br>(품다)</div>
+            <div class="skill-desc">배움을 내면의<br>에너지로<br>변환한다</div>
+        </div>
+        <div class="skill-card">
+            <div class="skill-icon"><i class="fa-solid fa-users"></i></div>
+            <div class="skill-key">T</div>
+            <div class="skill-name">파티 링크<br>(나누다)</div>
+            <div class="skill-desc">동료들과<br>정신을 연결하여<br>협력한다</div>
+        </div>
+        <div class="skill-card">
+            <div class="skill-icon"><i class="fa-solid fa-bolt"></i></div>
+            <div class="skill-key">T</div>
+            <div class="skill-name">스킬 시전<br>(잇다)</div>
+            <div class="skill-desc">현실 세계에<br>직접 마법을<br>사용한다</div>
+        </div>
+        <div class="skill-card">
+            <div class="skill-icon"><i class="fa-solid fa-globe"></i></div>
+            <div class="skill-key">O</div>
+            <div class="skill-name">월드 체인지<br>(펼치다)</div>
+            <div class="skill-desc">세상을 바꾸는<br>궁극기를<br>시전한다</div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 3: Stage 1 -->
+<div class="slide-container">
+    <h2>STAGE 1: 캐릭터 생성 (자아성찰) ✨</h2>
+    <div class="hud-layout">
+        <div class="hud-stats">
+            <div class="stat-row">
+                <span class="stat-label">▶ MISSION OBJECTIVE</span>
+                <span class="stat-value">"AI로 나만의 데이터를 분석하라"</span>
+            </div>
+            <div class="quest-box">
+                <div class="quest-title">MAIN QUEST</div>
+                <p style="font-size: 20px; color: #fff;">나의 강점/취향을 입력하고<br>RPG 직업과 스탯을 확인하세요.</p>
+            </div>
+        </div>
+        <div class="app-screen">
+            <div class="app-header">
+                <span>SOUL SCANNER v1.0</span>
+                <span class="player-info" id="p-info-1"></span>
+            </div>
+            <textarea id="input-stage1" class="pixel-input" placeholder="예: 나는 축구를 좋아하고, 친구 고민 들어주는 걸 잘해."></textarea>
+            <button onclick="Frontend.runStage1()" class="pixel-btn">스캔 시작 (SCAN)</button>
+            <div id="loading-stage1" class="loading">ANALYZING SOUL DATA...</div>
+            <div id="result-stage1" class="result-box">결과가 여기에 표시됩니다...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 4: Stage 2 -->
+<div class="slide-container">
+    <h2>STAGE 2: 길드 결성 (관계 기술) ✨</h2>
+    <div class="hud-layout">
+        <div class="app-screen">
+            <div class="app-header">
+                <span>HEART TRANSLATOR</span>
+                <span class="player-info" id="p-info-2"></span>
+            </div>
+            <textarea id="input-stage2" class="pixel-input" placeholder="예: 야, 너 왜 이렇게 늦었어? 짜증나게."></textarea>
+            <button onclick="Frontend.runStage2()" class="pixel-btn magic">따뜻한 마법 시전 (CAST)</button>
+            <div id="loading-stage2" class="loading">CONVERTING TO LOVE...</div>
+            <div id="result-stage2" class="result-box">결과가 여기에 표시됩니다...</div>
+        </div>
+        <div class="hud-stats">
+            <div class="stat-row">
+                <span class="stat-label">▶ MISSION OBJECTIVE</span>
+                <span class="stat-value">"차가운 말을 따뜻하게 바꿔라"</span>
+            </div>
+            <div class="quest-box" style="border-color: #f39c12;">
+                <div class="quest-title" style="color: #f39c12;">CO-OP QUEST</div>
+                <p style="font-size: 20px; color: #fff;">공격적인 언어를<br>비폭력 대화(NVC)로 번역하세요.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 5: Stage 3 -->
+<div class="slide-container boss-mode">
+    <h2 style="color: #e74c3c;">FINAL STAGE: 우리 동네 보스 레이드 ✨</h2>
+    <div class="hud-layout">
+        <div class="hud-stats">
+            <div class="stat-row">
+                <span class="stat-label">▶ WARNING !!</span>
+                <span class="stat-value">지역 사회 문제가 발견됨!</span>
+            </div>
+            <div class="quest-box" style="background-color: #3e2723;">
+                <div class="quest-title">ULTIMATE SKILL</div>
+                <p style="font-size: 20px; color: #fff;">문제점을 입력하고<br>강력한 선거 공약(필살기)을<br>생성하세요.</p>
+            </div>
+        </div>
+        <div class="app-screen">
+            <div class="app-header">
+                <span>MANIFESTO GENERATOR</span>
+                <span class="player-info" id="p-info-3"></span>
+            </div>
+            <textarea id="input-stage3" class="pixel-input" placeholder="예: 학교 앞 골목길에 쓰레기가 너무 많아서 냄새가 나요."></textarea>
+            <button onclick="Frontend.runStage3()" class="pixel-btn fire">궁극기 사용 (GENERATE)</button>
+            <div id="loading-stage3" class="loading">CHARGING ULTIMATE...</div>
+            <div id="result-stage3" class="result-box">결과가 여기에 표시됩니다...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 6: Dashboard -->
+<div class="slide-container" style="background-color: #111;">
+    <h2><i class="fa-solid fa-trophy"></i> 명예의 전당 (Real-time DB)</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div style="color: #aaa; font-size: 14px;">* Backend DB와 실시간 동기화 중</div>
+        <button onclick="BackendService.resetDB()" style="background: #333; color: #555; border: 1px solid #555; cursor: pointer; padding: 5px 10px;">[ADMIN] DB 리셋</button>
+    </div>
+    <div class="dashboard-grid" id="class-dashboard">
+        <div style="color: #777; padding: 20px;">데이터를 불러오는 중...</div>
+    </div>
+</div>
+
+<!-- MODULE: FIREBASE BACKEND SERVICE & FRONTEND CONTROLLER -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // ==========================================================
+    // [설정] 1. Firebase Config (선생님 전용 키 적용됨)
+    // ==========================================================
+    // ⚠️ 환경 변수 자동 감지를 끄고, 선생님이 주신 키를 강제로 사용합니다.
+    const firebaseConfig = {
+      apiKey: "AIzaSyAOgLnbvTn8tvxJkXo6uucm1Kh86TjEGX4",
+      authDomain: "moral-rpg-class.firebaseapp.com",
+      projectId: "moral-rpg-class",
+      storageBucket: "moral-rpg-class.firebasestorage.app",
+      messagingSenderId: "699908221561",
+      appId: "1:699908221561:web:5d0e60b524ab9d00aa02a8",
+      measurementId: "G-HL3TE9C0RM"
+    };
+
+    const appId = 'moral-rpg-class-2024';
+
+    // ==========================================================
+    // [설정] 2. Gemini API 키 (선생님 전용 키 적용됨)
+    // ==========================================================
+    // ⚠️ 선생님이 입력하신 키를 적용했습니다.
+    const geminiApiKey = "AIzaSyD7NVKCHQWj5P9m7WV-gPnHveqLFFZUekM"; 
+
+    // --- INITIALIZATION ---
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // ==========================================================
+    // [BACKEND SERVICE] 서버/DB 로직
+    // ==========================================================
+    const BackendService = {
+        currentUser: null,
+        currentStudentId: null,
+        currentName: null,
+        isOfflineMode: false, 
+
+        init: async () => {
+            try {
+                // 무조건 익명 로그인 시도 (선생님 프로젝트 설정 따름)
+                await signInAnonymously(auth);
+            } catch (e) {
+                console.warn("Backend Auth Failed (Offline Mode Activated):", e);
+                BackendService.isOfflineMode = true;
+                Frontend.updateServerStatus("⚠️ 오프라인 모드", "orange");
+                
+                const statusDiv = document.getElementById('login-status');
+                if(statusDiv) {
+                    statusDiv.innerHTML = "서버 연결 실패. (오프라인으로 진행합니다)<br>Firebase 콘솔에서 '익명 로그인'을 켜주세요.";
+                    statusDiv.style.color = "orange";
+                }
+                document.getElementById('login-btn').disabled = false;
+            }
+        },
+
+        setupAuthListener: (callback) => {
+            onAuthStateChanged(auth, (user) => {
+                BackendService.currentUser = user;
+                if (user) {
+                    BackendService.isOfflineMode = false;
+                    Frontend.updateServerStatus("🟢 서버 연결됨", "#2ecc71");
+                    callback(true);
+                } else {
+                    if (BackendService.isOfflineMode) {
+                        callback(true); 
+                    } else {
+                        Frontend.updateServerStatus("🔴 연결 끊김", "red");
+                        callback(false);
+                    }
+                }
+            });
+        },
+
+        loginUser: async (id, name) => {
+            BackendService.currentStudentId = id;
+            BackendService.currentName = name;
+
+            if (BackendService.isOfflineMode) return true;
+
+            try {
+                const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'rpg_users', id);
+                await setDoc(userDocRef, {
+                    studentId: id,
+                    name: name,
+                    lastLogin: new Date().toISOString()
+                }, { merge: true });
+                return true;
+            } catch (e) {
+                console.error("Login DB Error:", e);
+                // 에러나도 게임은 진행되게 true 반환 (단, 저장은 안됨)
+                return true; 
+            }
+        },
+
+        saveStageResult: async (stageKey, content) => {
+            if (BackendService.isOfflineMode) return; 
+            if (!BackendService.currentStudentId) return;
+            
+            const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'rpg_users', BackendService.currentStudentId);
+            try {
+                await setDoc(userDocRef, { [stageKey]: content }, { merge: true });
+            } catch(e) { console.error("Save Error:", e); }
+        },
+
+        subscribeToDashboard: (renderCallback) => {
+            if (BackendService.isOfflineMode) {
+                renderCallback([]); 
+                return;
+            }
+
+            const usersCol = collection(db, 'artifacts', appId, 'public', 'data', 'rpg_users');
+            onSnapshot(usersCol, (snapshot) => {
+                const users = [];
+                snapshot.forEach(doc => users.push(doc.data()));
+                renderCallback(users);
+            }, (error) => console.error("Stream Error:", error));
+        },
+
+        resetDB: async () => {
+            if (BackendService.isOfflineMode) return alert("오프라인 상태입니다.");
+            if(!confirm("모든 학생 데이터를 삭제하시겠습니까? (되돌릴 수 없습니다)")) return;
+            
+            const usersCol = collection(db, 'artifacts', appId, 'public', 'data', 'rpg_users');
+            const snapshot = await getDocs(usersCol);
+            snapshot.forEach(async (d) => {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rpg_users', d.id));
+            });
+            alert("DB가 초기화되었습니다.");
+        }
+    };
+
+    // ==========================================================
+    // [FRONTEND CONTROLLER] UI 로직
+    // ==========================================================
+    const Frontend = {
+        
+        init: () => {
+            BackendService.init();
+            BackendService.setupAuthListener((isReady) => {
+                const btn = document.getElementById('login-btn');
+                const status = document.getElementById('login-status');
+                
+                if(isReady) {
+                    btn.disabled = false;
+                    if (!BackendService.isOfflineMode) {
+                        status.innerText = "서버 준비 완료. 정보를 입력하세요.";
+                        status.style.color = "#777";
+                    }
+                } else {
+                    btn.disabled = true;
+                    status.innerText = "서버 연결 중...";
+                }
+            });
+        },
+
+        updateServerStatus: (msg, color) => {
+            const el = document.getElementById('server-status');
+            el.innerHTML = `<i class="fa-solid fa-circle-nodes"></i> ${msg}`;
+            el.style.color = color;
+        },
+
+        startLogin: async () => {
+            const id = document.getElementById('student-id').value.trim();
+            const name = document.getElementById('student-name').value.trim();
+
+            if(!id || !name) { alert("학번과 이름을 입력해주세요."); return; }
+
+            const success = await BackendService.loginUser(id, name);
+            if(success) {
+                document.getElementById('login-wrapper').style.display = 'none';
+                document.querySelectorAll('.slide-container').forEach(el => el.classList.add('active'));
+                document.getElementById('home-btn').style.display = 'flex';
+                
+                const display = `${id} ${name}`;
+                document.getElementById('display-player-name').innerText = display;
+                document.getElementById('p-info-1').innerText = `PLAYER: ${name}`;
+                document.getElementById('p-info-2').innerText = `PLAYER: ${name}`;
+                document.getElementById('p-info-3').innerText = `PLAYER: ${name}`;
+
+                document.getElementById('slide-title').scrollIntoView({ behavior: 'smooth' });
+                BackendService.subscribeToDashboard(Frontend.renderDashboard);
+            } else {
+                alert("로그인 저장 실패. 인터넷 연결을 확인하세요.");
+            }
+        },
+
+        goHome: () => {
+            BackendService.currentStudentId = null;
+            BackendService.currentName = null;
+            
+            document.getElementById('login-wrapper').style.display = 'flex';
+            document.querySelectorAll('.slide-container').forEach(el => el.classList.remove('active'));
+            document.getElementById('home-btn').style.display = 'none';
+            
+            document.getElementById('login-status').innerText = "정보를 수정하고 다시 접속하세요.";
+            window.scrollTo(0, 0);
+        },
+
+        callAI: async (prompt) => {
+            if (!geminiApiKey) {
+                alert("Gemini API 키 오류: 키가 비어있습니다.");
+                return "API KEY ERROR";
+            }
+            
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            
+            try {
+                const response = await fetch(url, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text;
+            } catch(e) {
+                console.error(e);
+                return "AI 통신 오류 (API Key 또는 네트워크 확인)";
+            }
+        },
+
+        runStage1: async () => {
+            const input = document.getElementById("input-stage1").value;
+            if(!input) return alert("입력값이 없습니다.");
+            
+            document.getElementById("loading-stage1").style.display = "block";
+            const prompt = `사용자(${BackendService.currentName})의 입력: "${input}". 이를 바탕으로 RPG 직업과 능력치를 창의적으로 생성해줘.`;
+            const result = await Frontend.callAI(prompt);
+            
+            document.getElementById("loading-stage1").style.display = "none";
+            document.getElementById("result-stage1").innerText = result;
+            BackendService.saveStageResult("stage1", result);
+        },
+
+        runStage2: async () => {
+            const input = document.getElementById("input-stage2").value;
+            if(!input) return alert("입력값이 없습니다.");
+            
+            document.getElementById("loading-stage2").style.display = "block";
+            const prompt = `공격적인 말 "${input}"을 비폭력 대화법으로 따뜻하게 바꿔줘.`;
+            const result = await Frontend.callAI(prompt);
+            
+            document.getElementById("loading-stage2").style.display = "none";
+            document.getElementById("result-stage2").innerText = result;
+            BackendService.saveStageResult("stage2", result);
+        },
+
+        runStage3: async () => {
+            const input = document.getElementById("input-stage3").value;
+            if(!input) return alert("입력값이 없습니다.");
+            
+            document.getElementById("loading-stage3").style.display = "block";
+            const prompt = `지역사회 문제 "${input}" 해결을 위한 청소년 선거 공약 슬로건과 행동 강령을 만들어줘.`;
+            const result = await Frontend.callAI(prompt);
+            
+            document.getElementById("loading-stage3").style.display = "none";
+            document.getElementById("result-stage3").innerText = result;
+            BackendService.saveStageResult("stage3", result);
+        },
+
+        renderDashboard: (users) => {
+            const container = document.getElementById('class-dashboard');
+            if(users.length === 0) {
+                container.innerHTML = '<div style="color:#777; padding:20px;">데이터 없음 (오프라인 모드일 수 있습니다)</div>';
+                return;
+            }
+
+            users.sort((a, b) => {
+                if(a.studentId === BackendService.currentStudentId) return -1;
+                if(b.studentId === BackendService.currentStudentId) return 1;
+                return a.studentId.localeCompare(b.studentId);
+            });
+
+            let html = '';
+            users.forEach(u => {
+                const isMe = u.studentId === BackendService.currentStudentId;
+                const cardClass = isMe ? 'student-card me' : 'student-card';
+                const starIcon = isMe ? '<i class="fa-solid fa-star" style="color: #f1c40f;"></i>' : '<i class="fa-solid fa-user-astronaut"></i>';
+                
+                let content = "모험 준비 중...";
+                if(u.stage3) content = `[FINAL] ${u.stage3}`;
+                else if(u.stage2) content = `[STAGE 2] ${u.stage2}`;
+                else if(u.stage1) content = `[STAGE 1] ${u.stage1}`;
+                
+                if(content.length > 80) content = content.substring(0, 80) + "...";
+
+                html += `
+                <div class="${cardClass}">
+                    <div class="student-header">
+                        <span>${u.studentId} ${u.name} ${isMe?'(나)':''}</span>
+                        ${starIcon}
+                    </div>
+                    <div class="student-result">${content}</div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+    };
+
+    window.Frontend = Frontend;
+    window.BackendService = BackendService;
+    Frontend.init();
+</script>
+
+</body>
+</html>

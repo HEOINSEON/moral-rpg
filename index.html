@@ -647,6 +647,37 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
             container.innerHTML = html;
         },
 
+        deleteStudent: async (studentId) => {
+            if(!confirm(`정말 [${studentId}] 학생의 데이터를 영구 삭제하시겠습니까?`)) return;
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rpg_users', studentId));
+                alert("성공적으로 삭제되었습니다.");
+            } catch(e) {
+                console.error(e);
+                alert("삭제 중 오류가 발생했습니다.");
+            }
+        },
+
+        editStudent: async (studentId) => {
+            const stageNum = prompt(`[${studentId}] 학생의 어느 스테이지를 수정하시겠습니까?\n(숫자 1, 2, 3 중 하나만 입력)`, "3");
+            if(!stageNum || !['1','2','3'].includes(stageNum)) return;
+            
+            const stageKey = 'stage' + stageNum;
+            const newContent = prompt(`새롭게 수정할 내용을 입력하세요:`);
+            if(newContent === null) return; 
+            
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rpg_users', studentId), {
+                    [stageKey]: newContent
+                }, { merge: true });
+                alert("성공적으로 수정되었습니다.");
+            } catch(e) {
+                console.error(e);
+                alert("수정 중 오류가 발생했습니다.");
+            }
+        }
+    }; 
+    
     window.Frontend = Frontend;
     window.BackendService = BackendService;
     Frontend.init();
@@ -655,5 +686,6 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
 </body>
 
 </html>
+
 
 

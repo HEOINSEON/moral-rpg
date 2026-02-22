@@ -388,7 +388,6 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
       measurementId: "G-HL3TE9C0RM"
     };
     const appId = 'moral-rpg-class-2024';
-    const geminiApiKey = "AIzaSyD7NVKCHQWj5P9m7WV-gPnHveqLFFZUekM";
 
     // Init
     const app = initializeApp(firebaseConfig);
@@ -548,13 +547,23 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
         },
 
         callAI: async (prompt) => {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
-            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            // 2단계에서 복사한 구글 스크립트 '웹 앱 URL'을 아래 따옴표 안에 붙여넣으세요!
+            const gasUrl = "https://script.google.com/macros/s/AKfycbxCPAbIL5RtkEzwN6q29Mm-H41iBnzBSyxieBvNaN9Sxd9iLALCfB83exyRTqlthUQg/exec";
+            
             try {
-                const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                // 직접 Gemini로 가지 않고 선생님의 안전한 스크립트로 요청을 보냅니다.
+                const response = await fetch(gasUrl, { 
+                    method: "POST", 
+                    headers: { "Content-Type": "text/plain;charset=utf-8" }, 
+                    body: JSON.stringify({ prompt: prompt }) 
+                });
+                
                 const data = await response.json();
-                return data.candidates[0].content.parts[0].text;
-            } catch(e) { return "AI 통신 오류"; }
+                return data.result;
+            } catch(e) { 
+                console.error("AI 통신 에러:", e);
+                return "AI 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."; 
+            }
         },
 
         runStage1: async () => {
@@ -612,4 +621,5 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
 </script>
 
 </body>
+
 </html>

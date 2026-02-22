@@ -364,7 +364,7 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
     <h2><i class="fa-solid fa-trophy"></i> 명예의 전당 (Real-time DB)</h2>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <div style="color: #aaa; font-size: 14px;">* Backend DB와 실시간 동기화 중</div>
-        <button onclick="BackendService.resetDB()" style="background: #333; color: #555; border: 1px solid #555; cursor: pointer; padding: 5px 10px;">[ADMIN] DB 리셋</button>
+        <button id="admin-reset-btn" onclick="BackendService.resetDB()" style="display:none; background: #333; color: #fff; border: 1px solid #e74c3c; cursor: pointer; padding: 5px 10px;">[ADMIN] 전체 DB 리셋</button>
     </div>
     <div class="dashboard-grid" id="class-dashboard">
         <div style="color: #777; padding: 20px;">데이터를 불러오는 중...</div>
@@ -623,3 +623,4 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
 </body>
 
 </html>
+

@@ -618,6 +618,7 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
             
             let html = '';
             users.forEach(u => {
+                if (u.studentId === 'admin') return;
                 const isMe = u.studentId === BackendService.currentStudentId;
                 let content = u.stage3 ? `[FINAL] ${u.stage3}` : (u.stage2 ? `[STAGE 2] ${u.stage2}` : (u.stage1 ? `[STAGE 1] ${u.stage1}` : "모험 준비 중..."));
                 
@@ -686,6 +687,7 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
 </body>
 
 </html>
+
 
 
 

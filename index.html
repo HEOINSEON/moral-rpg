@@ -512,6 +512,13 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
             const name = document.getElementById('student-name').value.trim();
             if(!id || !name) { alert("정보를 입력해주세요."); return; }
 
+            // 👑 선생님(관리자) 비밀 로그인 체크
+            if (id === 'admin' && name === '3584') { // '1234'는 선생님만 아는 비밀번호로 자유롭게 바꾸셔도 됩니다!
+                window.isAdmin = true;
+            } else {
+                window.isAdmin = false;
+            }
+
             const btn = document.getElementById('login-btn');
             btn.innerText = "접속 중...";
             btn.disabled = true;
@@ -526,11 +533,16 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
                 document.querySelectorAll('.slide-container').forEach(el => el.classList.add('active'));
                 document.getElementById('home-btn').style.display = 'flex';
                 
-                const display = `${id} ${name}`;
+                // 관리자일 경우 리셋 버튼 나타나게 하기
+                const resetBtn = document.getElementById('admin-reset-btn');
+                if(resetBtn) resetBtn.style.display = window.isAdmin ? 'block' : 'none';
+
+                // 게임 내 플레이어 이름을 관리자로 변경
+                const display = window.isAdmin ? "👑 관리자 (선생님)" : `${id} ${name}`;
                 document.getElementById('display-player-name').innerText = display;
-                document.getElementById('p-info-1').innerText = `PLAYER: ${name}`;
-                document.getElementById('p-info-2').innerText = `PLAYER: ${name}`;
-                document.getElementById('p-info-3').innerText = `PLAYER: ${name}`;
+                document.getElementById('p-info-1').innerText = `PLAYER: ${window.isAdmin ? 'ADMIN' : name}`;
+                document.getElementById('p-info-2').innerText = `PLAYER: ${window.isAdmin ? 'ADMIN' : name}`;
+                document.getElementById('p-info-3').innerText = `PLAYER: ${window.isAdmin ? 'ADMIN' : name}`;
 
                 document.getElementById('slide-title').scrollIntoView({ behavior: 'smooth' });
                 BackendService.subscribeToDashboard(Frontend.renderDashboard);
@@ -608,12 +620,32 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
             users.forEach(u => {
                 const isMe = u.studentId === BackendService.currentStudentId;
                 let content = u.stage3 ? `[FINAL] ${u.stage3}` : (u.stage2 ? `[STAGE 2] ${u.stage2}` : (u.stage1 ? `[STAGE 1] ${u.stage1}` : "모험 준비 중..."));
-                if(content.length > 80) content = content.substring(0, 80) + "...";
-                html += `<div class="${isMe ? 'student-card me' : 'student-card'}"><div class="student-header"><span>${u.studentId} ${u.name} ${isMe?'(나)':''}</span><i class="fa-solid ${isMe?'fa-star':'fa-user-astronaut'}"></i></div><div class="student-result">${content}</div></div>`;
+                
+                // 학생들에게는 긴 글이 잘려 보이지만, 관리자는 내용을 전부 다 볼 수 있습니다.
+                if(!window.isAdmin && content.length > 80) content = content.substring(0, 80) + "...";
+
+                // 👑 관리자 전용 수정/삭제 버튼
+                let adminControls = "";
+                if (window.isAdmin && u.studentId !== 'admin') {
+                    adminControls = `
+                        <div style="margin-top: 15px; border-top: 1px dashed #555; padding-top: 10px; text-align: right;">
+                            <button onclick="Frontend.editStudent('${u.studentId}')" style="background:#f39c12; color:#000; border:none; padding:5px 10px; cursor:pointer; font-family:'DotGothic16'; margin-right: 5px;">수정</button>
+                            <button onclick="Frontend.deleteStudent('${u.studentId}')" style="background:#e74c3c; color:#fff; border:none; padding:5px 10px; cursor:pointer; font-family:'DotGothic16';">삭제</button>
+                        </div>
+                    `;
+                }
+
+                html += `<div class="${isMe ? 'student-card me' : 'student-card'}">
+                            <div class="student-header">
+                                <span>${u.studentId} ${u.name} ${isMe?'(나)':''}</span>
+                                <i class="fa-solid ${isMe?'fa-star':'fa-user-astronaut'}"></i>
+                            </div>
+                            <div class="student-result">${content}</div>
+                            ${adminControls}
+                         </div>`;
             });
             container.innerHTML = html;
-        }
-    };
+        },
 
     window.Frontend = Frontend;
     window.BackendService = BackendService;
@@ -623,4 +655,5 @@ p, li { font-size: 24px; line-height: 1.6; text-shadow: 2px 2px 0 #000; }
 </body>
 
 </html>
+
 
